@@ -3,11 +3,11 @@ package ai.archie.android.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -17,59 +17,79 @@ import java.io.ByteArrayOutputStream;
 
 import ai.archie.android.R;
 import ai.archie.android.audio.VoiceRecorder;
-import ai.archie.android.service.ArchieServiceGateway;
-import ai.archie.android.service.GetActionFromSpeechTask;
+import ai.archie.android.service.ArchieService;
+import ai.archie.android.service.task.GetActionFromSpeechTask;
 import ai.archie.android.service.model.ClientAction;
+import ai.archie.android.settings.DeviceSettingsManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 /**
  * Main interface for interacting with the Archie AI Service. Contains UI elements allowing user to
  * record voice and display response from Archie.
  */
-public class ArchieActivity extends AppCompatActivity
-        implements GetActionFromSpeechTask.OnActionReceivedListener {
+public class ArchieActivity extends AppCompatActivity implements ArchieService.ArchieListener {
 
     private static final String LOG_TAG = ArchieActivity.class.getSimpleName();
 
-    private Button mRecordButton = null;
-    private ProgressBar mProgressSpinner = null;
-    private TextView mResultDisplay = null;
+    @BindView(R.id.recordButton)
+    Button recordButton;
+    @BindView(R.id.progressSpinner)
+    ProgressBar progressSpinner;
+    @BindView(R.id.resultDisplay)
+    TextView resultDisplay;
 
-    private VoiceRecorder mRecorder = null;
+    private DeviceSettingsManager deviceSettingsManager;
+    private ArchieService archieService;
 
-    private ArchieServiceGateway mArchieService = null;
+    private boolean recording = false;
 
     /**
      * Setup UI references and gateway to the Archie Service.
      */
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_archie);
+        ButterKnife.bind(this);
 
-        mProgressSpinner = (ProgressBar) findViewById(R.id.progressSpinner);
-        mResultDisplay = (TextView) findViewById(R.id.resultDisplay);
+        deviceSettingsManager = new DeviceSettingsManager(this);
 
-        mRecordButton = (Button) findViewById(R.id.recordButton);
-        mRecordButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                onRecordPressed();
+        archieService = new ArchieService();
+        archieService.registerListener(this);
+
+        recordButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        onRecordPressed();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        onRecordReleased();
+                        break;
+                }
+                return false;
             }
         });
-
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
-        myToolbar.setTitle("");
-        setSupportActionBar(myToolbar);
-
-        mArchieService = new ArchieServiceGateway();
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
-        if (mRecorder != null) {
-            mRecorder.release();
-            mRecorder = null;
-        }
+    public void onResume() {
+        super.onResume();
+        archieService.initialize(deviceSettingsManager.getDeviceSettings());
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        archieService.release();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        archieService.unregisterListener(this);
     }
 
     /**
@@ -98,6 +118,11 @@ public class ArchieActivity extends AppCompatActivity
         return true;
     }
 
+    @Override
+    public void onArchieInitialized() {
+        resultDisplay.setText("Ready to listen");
+    }
+
     /**
      * Receives the callback from GetActionFromSpeechTask when response is received from
      * ArchieService.
@@ -105,14 +130,16 @@ public class ArchieActivity extends AppCompatActivity
      * @param action ClientAction to perform
      */
     @Override
-    public void onActionReceived(ClientAction action) {
-        // play the speech response
-        mArchieService.playTextAsSpeech(action.getSpeakText());
-
+    public void onActionResult(ClientAction action) {
         // update the views
-        mProgressSpinner.setVisibility(View.GONE);
-        mRecordButton.setVisibility(View.VISIBLE);
-        mResultDisplay.setText(action.getDisplayText());
+        progressSpinner.setVisibility(View.GONE);
+        recordButton.setVisibility(View.VISIBLE);
+        resultDisplay.setText(action.getDisplayText());
+    }
+
+    @Override
+    public void onSpeechPlaybackStarted(String transcription) {
+
     }
 
     /**
@@ -120,24 +147,15 @@ public class ArchieActivity extends AppCompatActivity
      * elements accordingly.
      */
     private void onRecordPressed() {
-        if (mRecorder == null || !mRecorder.isRecording()) {
-            mRecordButton.setBackgroundResource(R.mipmap.ic_mic_on);
-            mResultDisplay.setText("");
-            mRecorder = new VoiceRecorder();
-            mRecorder.start();
-            Log.d(LOG_TAG, "Started recording");
-        } else {
-            // update the views
-            mRecordButton.setVisibility(View.GONE);
-            mProgressSpinner.setVisibility(View.VISIBLE);
-            mRecordButton.setBackgroundResource(R.mipmap.ic_mic_off);
+        resultDisplay.setText("");
+        archieService.startRecording();
+        Log.d(LOG_TAG, "Started recording");
+    }
 
-            // stop the recording and upload the speech
-            ByteArrayOutputStream recording = mRecorder.stop();
-            mArchieService.getActionFromSpeech(recording, this);
-            mRecorder.release();
-            mRecorder = null;
-            Log.d(LOG_TAG, "Finished recording, uploading speech");
-        }
+    private void onRecordReleased() {
+        recordButton.setVisibility(View.GONE);
+        progressSpinner.setVisibility(View.VISIBLE);
+        archieService.stopRecording();
+        Log.d(LOG_TAG, "Stopped recording");
     }
 }

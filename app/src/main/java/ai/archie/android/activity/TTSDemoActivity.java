@@ -7,7 +7,8 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import ai.archie.android.R;
-import ai.archie.android.service.ArchieServiceGateway;
+import ai.archie.android.service.ArchieService;
+import ai.archie.android.settings.DeviceSettingsManager;
 
 /**
  * Direct interface to Archie's TTS for debugging purposes.
@@ -17,7 +18,7 @@ public class TTSDemoActivity extends AppCompatActivity {
     private EditText mTTSEditText = null;
     private Button mTTSSubmitButton = null;
 
-    private ArchieServiceGateway mArchieService = null;
+    private ArchieService mArchieService = null;
 
     /**
      * Handles "Speak" button press events by playing the submitted text as speech.
@@ -25,7 +26,7 @@ public class TTSDemoActivity extends AppCompatActivity {
     private void onSpeak() {
         String text = mTTSEditText.getText().toString();
         mTTSEditText.setText("");
-        mArchieService.playTextAsSpeech(text);
+        //mArchieService.playTextAsSpeech(text);
     }
 
     @Override
@@ -43,6 +44,6 @@ public class TTSDemoActivity extends AppCompatActivity {
             }
         });
 
-        mArchieService = new ArchieServiceGateway();
+        mArchieService = new ArchieService();
     }
 }

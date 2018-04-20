@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView style="@style/SettingsHeader"
+        android:text="Device Settings" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <TextView style="@style/SettingsLabel"
+            android:text="Local Archie Service Hostname" />
+
+        <EditText android:id="@+id/localArchieServiceHostnameInput"
+            style="@style/SettingsTextInput" />
+    </LinearLayout>
+
+    <CheckBox android:id="@+id/useProdServicesInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Use Production Services" />
+
+    <CheckBox android:id="@+id/useCustomASRInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Use Custom ASR" />
+
+    <CheckBox android:id="@+id/useCustomTTSInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Use Custom TTS" />
+
+    <Button android:id="@+id/saveSettingsButton"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="Save"
+        android:onClick="onSaveClicked"/>
+</LinearLayout>

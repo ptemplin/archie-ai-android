@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Archie</string>
     <string name="speak_button_title">Speak</string>
+
+    <!-- Settings -->
+    <string name="device_settings_file">device_settings</string>
+    <string name="local_archie_service_hostname_key">archie_service_hostname</string>
+    <string name="use_production_services_key">use_production_services</string>
+    <string name="use_custom_asr_key">use_custom_asr</string>
+    <string name="use_custom_tts_key">use_custom_tts</string>
 </resources>

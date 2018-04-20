@@ -31,16 +31,15 @@ public class VoiceRecorder
     private ByteArrayOutputStream byteStream;
     private AudioRecord audioRecorder;
     // Buffer for output
-    private byte[] buffer;
-    private boolean recording;
+    private byte[] buffer = new byte[BUFFER_SIZE];
+    private boolean recording = false;
 
     /**
      * Initializes the VoiceRecorder, initializing a new underlying AudioRecorder.
      */
-    public VoiceRecorder() {
-        recording = false;
+    public boolean initialize() {
+        Log.d(getClass().getSimpleName(), "Initializing VoiceRecorder");
         byteStream = new ByteArrayOutputStream();
-        buffer = new byte[BUFFER_SIZE];
         try {
             audioRecorder = new AudioRecord(
                     AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, BUFFER_SIZE);
@@ -52,7 +51,9 @@ public class VoiceRecorder
 
         } catch (Exception e) {
             Log.e(VoiceRecorder.class.getName(), e.getMessage());
+            return false;
         }
+        return true;
     }
 
     /**
@@ -98,9 +99,7 @@ public class VoiceRecorder
      */
     public void reset() {
         release();
-        byteStream = new ByteArrayOutputStream();
-        audioRecorder = new AudioRecord(
-                AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, BUFFER_SIZE);
+        initialize();
     }
 
     /*
